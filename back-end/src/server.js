@@ -1,5 +1,5 @@
 import express from 'express';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient, ReturnDocument, ServerApiVersion } from 'mongodb';
 
 // In memory database server to track comments, upvotes
 const articleInfo = [
@@ -16,16 +16,12 @@ app.use(express.json());
 
 let db;
 
-//Create a new endpoint that will allow us to load data for one of our articles without modifying it
-app.get('/api/articles/:name', async (req, res) =>  {
-    const { name } = req.params;
-
-// Create a new instance of that MongoClient, which will enable us to connect to MongoDB in the same way 
-// that we were able to connect to it from the terminal by typing the command Mongosh.
+async function connectToDB() {
+// Create a new instance of that MongoClient, enabling a connection to MongoDB in the same way 
+// we connect to it from the terminal by typing the command Mongosh.
     const uri = 'mongodb+srv://Cluster21741:amdpV3FoeVBT@cluster21741.suamqwc.mongodb.net/?appName=Cluster21741';
 
     const client  =  new MongoClient(uri, {
-        // default setting object 
         serverApi: {
             version: ServerApiVersion.v1,
             strict: true,
@@ -34,28 +30,39 @@ app.get('/api/articles/:name', async (req, res) =>  {
     });
 
     // tell Mongo client to connect to Mongodb instance
-    await client.connect(); // this entire function is async
+    await client.connect();
 
-    // Referene to the cluster we created.
-    const db = client.db('test');
+    // Referene to the database name
+    db = client.db('test');
+}
+
+//Create a new endpoint that will allow us to load data for one of our articles without modifying it
+app.get('/api/articles/:name', async (req, res) =>  {
+    const { name } = req.params;
 
     // make a query to the database we are connected to find the one article we are looking for
     const article = await db.collection('articles').findOne({ name })
     
-
-    // send back the udpated article
     res.json(article);
 });
 
 
 //GET the value of this route param (name) to find the corresponding article and increment the number of up votes
-app.post('/api/articles/:name/upvote', (req, res) =>  {
+app.post('/api/articles/:name/upvote', async (req, res) =>  {
     const { name } = req.params;
-    const article = articleInfo.find(a => a.name === name);
-    article.upvotes += 1
+// Start by finding the article by its name, use findOneAndUpdate to find the article whose name matches the name 
+// route parameter. The second arg is an object specifying the changes we want to make to that document. 
+// This one uses a special syntax that's unique to MongoDB => $inc, that stands for increment, 
+// to increment the upvotes by one. 
+    const updatedArticle = await db.collection('articles').findOneAndUpdate({ name }, {
+        $inc: {upvotes: 1}
+    }, {
+// we need to pass a settings object that will tell MongoDB when we want to return the document that we're finding, 
+// Options to return before or after update
+        ReturnDocument: "after",
+    });
 
-    // send back the udpated article
-    res.json(article);
+    res.json(updatedArticle)
 });
 
 //Endpoint will allow users to add comments to an article.
@@ -70,13 +77,16 @@ app.post('/api/articles/:name/comments', (req, res) => {
         text
     });
 
-    // send back the udpated article
     res.json(article);
 });
 
-// First arg is the port & Second is a callback function or route handler
-app.listen(port, function() {
-    console.log('Server is listening on port: 8000')
-})
+async function start() {
+    await connectToDB();
 
-// ServerAPIVerion => creates a new instance of this MongoClient
+    app.listen(port, function() {
+    
+    console.log('Server is listening on port: 8000')
+    })
+}
+
+start();
