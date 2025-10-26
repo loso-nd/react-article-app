@@ -1,8 +1,12 @@
 import express from 'express';
-import { MongoClient, ReturnDocument, ServerApiVersion } from 'mongodb';
+import { MongoClient, ServerApiVersion } from 'mongodb';
+import cors from 'cors';
 
 const app = express();
 const port = 8000;
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Tells our request app if it sees a request body, it should add it to the request.body object.
 app.use(express.json());

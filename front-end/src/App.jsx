@@ -3,7 +3,7 @@ import HomePage from './pages/HomePage';
 import './App.css';
 import AboutPage from './pages/AboutPage';
 import ArticlesListPage from './pages/ArticlesListPage';
-import ArticlePage from './pages/ArticlePage';
+import ArticlePage, { loader as articleLoader} from './pages/ArticlePage';
 import Layout from './Layout';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -25,7 +25,8 @@ const routes = [{
   },
   {
     path: '/articles/:name', // -> /articles/learn-react
-    element: <ArticlePage />
+    element: <ArticlePage />,
+    loader: articleLoader,
   },]
 }]
 
@@ -40,3 +41,7 @@ function App() {
 }
 
 export default App
+
+
+
+//In order to load data for these pages we need to specify a loader -loading whatever data this component needs from the server.
