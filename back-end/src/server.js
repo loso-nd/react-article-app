@@ -1,13 +1,6 @@
 import express from 'express';
 import { MongoClient, ReturnDocument, ServerApiVersion } from 'mongodb';
 
-// In memory database server to track comments, upvotes
-const articleInfo = [
-  { name: 'learn-node', upvotes: 0, comments: [] },
-  { name: 'learn-react', upvotes: 0, comments: [] },
-  { name: 'mongo-db', upvotes: 0, comments: [] },
-];
-
 const app = express();
 const port = 8000;
 
@@ -17,9 +10,8 @@ app.use(express.json());
 let db;
 
 async function connectToDB() {
-// Create a new instance of that MongoClient, enabling a connection to MongoDB in the same way 
-// we connect to it from the terminal by typing the command Mongosh.
-    const uri = 'mongodb+srv://Cluster21741:amdpV3FoeVBT@cluster21741.suamqwc.mongodb.net/?appName=Cluster21741';
+// Create a new instance of that MongoClient, enabling a connection to MongoDB 
+    const uri = '';
 
     const client  =  new MongoClient(uri, {
         serverApi: {
@@ -59,25 +51,25 @@ app.post('/api/articles/:name/upvote', async (req, res) =>  {
     }, {
 // we need to pass a settings object that will tell MongoDB when we want to return the document that we're finding, 
 // Options to return before or after update
-        ReturnDocument: "after",
+        returnDocument: "after",
     });
 
     res.json(updatedArticle)
 });
 
 //Endpoint will allow users to add comments to an article.
-app.post('/api/articles/:name/comments', (req, res) => {
+app.post('/api/articles/:name/comments', async(req, res) => {
     const { name } = req.params;
     const { postedBy, text } = req.body;
+    const newComment = { postedBy, text};
 
-    const article = articleInfo.find(a => a.name === name);
-
-    article.comments.push({
-        postedBy,
-        text
+    const updatedArticle = await db.collection('articles').findOneAndUpdate({ name }, {
+        $push: {comments: newComment}
+    }, {
+        returnDocument: 'after',
     });
 
-    res.json(article);
+    res.json(updatedArticle);
 });
 
 async function start() {
