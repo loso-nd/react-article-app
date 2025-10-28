@@ -7,11 +7,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  async function login() {
+  async function logInToAccount() {
     try {
-    // send a request to Firebase auth to auth the user 
+      // send a request to Firebase auth to auth the user 
       await signInWithEmailAndPassword(getAuth(), email, password);
       navigate('/articles');
     } catch (e) {
@@ -33,7 +33,7 @@ const LoginPage = () => {
         type='password'
         value={password}
         onChange={e => setPassword(e.target.value)} />
-      <button onClick={login}>Login</button>
+      <button onClick={logInToAccount}>Login</button>
       <Link to='/create-account'>Don't have an account? Create one here!</Link>
     </>
   )
