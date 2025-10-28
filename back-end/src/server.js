@@ -15,7 +15,7 @@ let db;
 
 async function connectToDB() {
 // Create a new instance of that MongoClient, enabling a connection to MongoDB 
-    const uri = '';
+    const uri = 'mongodb+srv://Cluster21741:amdpV3FoeVBT@cluster21741.suamqwc.mongodb.net/?appName=Cluster21741';
 
     const client  =  new MongoClient(uri, {
         serverApi: {
@@ -35,11 +35,24 @@ async function connectToDB() {
 //Create a new endpoint that will allow us to load data for one of our articles without modifying it
 app.get('/api/articles/:name', async (req, res) =>  {
     const { name } = req.params;
+    console.log(`Received request for article: ${name}`);
 
-    // make a query to the database we are connected to find the one article we are looking for
-    const article = await db.collection('articles').findOne({ name })
-    
-    res.json(article);
+    try {
+        // make a query to the database we are connected to find the one article we are looking for
+        const article = await db.collection('articles').findOne({ name })
+        console.log(`Found article:`, article);
+
+        if (!article) {
+            console.log(`Article '${name}' not found in database`);
+            return res.status(404).json({ error: 'Article not found' });
+        }
+
+        res.json(article);
+    } catch (error) {
+        console.error('Error fetching article:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+
 });
 
 
