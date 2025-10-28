@@ -1,6 +1,17 @@
 import express from 'express';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import cors from 'cors';
+import admin from 'firebase-admin';
+import fs from 'fs';
+
+const credentials = JSON.parse(
+    fs.readFileSync('./credentials.json')
+);
+
+admin.initializeApp({
+  credential: admin.credential.cert(credentials)
+});
+
 
 const app = express();
 const port = 8000;
@@ -15,7 +26,6 @@ let db;
 
 async function connectToDB() {
 // Create a new instance of that MongoClient, enabling a connection to MongoDB 
-    const uri = 'mongodb+srv://Cluster21741:amdpV3FoeVBT@cluster21741.suamqwc.mongodb.net/?appName=Cluster21741';
 
     const client  =  new MongoClient(uri, {
         serverApi: {

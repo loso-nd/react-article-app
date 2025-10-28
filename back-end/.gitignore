@@ -1,5 +1,11 @@
 # Logs
 node_modules
+mongo-db-data
+credentials.json
+build
+.env
+credentials.json
+
 
 
 # Editor directories and files
