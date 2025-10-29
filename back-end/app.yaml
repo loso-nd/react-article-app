@@ -1,0 +1,4 @@
+# Tells google cloud what env our app meant to be run inside of
+includes: 
+  - prod-env.yaml
+runtime: nodejs20

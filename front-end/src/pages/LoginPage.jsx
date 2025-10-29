@@ -22,7 +22,7 @@ const LoginPage = () => {
   return (
     <>
       <h1> Log In</h1>
-      {error && <p>{error}</p>}
+      {error && <p style={{  color: "red" }}>Invalid username or password</p>}
       <input 
         placeholder='Your email address'
         type='text'

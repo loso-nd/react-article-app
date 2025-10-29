@@ -3,6 +3,11 @@ import { MongoClient, ServerApiVersion } from 'mongodb';
 import cors from 'cors';
 import admin from 'firebase-admin';
 import fs from 'fs';
+import path from 'path';
+
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const credentials = JSON.parse(
     fs.readFileSync('./credentials.json')
@@ -14,7 +19,6 @@ admin.initializeApp({
 
 
 const app = express();
-const port = 8000;
 
 // Enable CORS for all routes
 app.use(cors());
@@ -26,6 +30,8 @@ let db;
 
 async function connectToDB() {
 // Create a new instance of that MongoClient, enabling a connection to MongoDB 
+    const uri = `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@cluster21741.suamqwc.mongodb.net/?appName=${process.env.MONGO_CLUSTERNAME}`
+    
 
     const client  =  new MongoClient(uri, {
         serverApi: {
@@ -35,53 +41,61 @@ async function connectToDB() {
         }
     });
 
-    // tell Mongo client to connect to Mongodb instance
     await client.connect();
-
-    // Referene to the database name
     db = client.db('test');
 }
 
-//Create a new endpoint that will allow us to load data for one of our articles without modifying it
-app.get('/api/articles/:name', async (req, res) =>  {
-    const { name } = req.params;
-    console.log(`Received request for article: ${name}`);
+//middleware to server frontend files to the backend
+app.use(express.static(path.join(__dirname, '../dist')))
 
-    try {
-        // make a query to the database we are connected to find the one article we are looking for
-        const article = await db.collection('articles').findOne({ name })
-        console.log(`Found article:`, article);
-
-        if (!article) {
-            console.log(`Article '${name}' not found in database`);
-            return res.status(404).json({ error: 'Article not found' });
-        }
-
-        res.json(article);
-    } catch (error) {
-        console.error('Error fetching article:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-
+// anything not starting with api
+app.get(/^(?!\/api).+/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
+
+//Create a new endpoint that will allow us to load data for one of our articles without modifying it
+app.get('/api/articles/:name', async (req, res) => {
+  const { name } = req.params;
+  const article = await db.collection('articles').findOne({ name });
+  res.json(article);
+});
+
+// Express middleware to check every req to validate if users have authorization to upvote or leave comments
+app.use(async function(req, res, next) {
+    const { authtoken } = req.headers
+
+    if (authtoken) {
+        const user = await admin.auth().verifyIdToken(authtoken);
+        req.user = user;
+        next();
+    } else {
+        res.sendStatus(400, "Bad Request");
+    }
+})
 
 
 //GET the value of this route param (name) to find the corresponding article and increment the number of up votes
 app.post('/api/articles/:name/upvote', async (req, res) =>  {
     const { name } = req.params;
-// Start by finding the article by its name, use findOneAndUpdate to find the article whose name matches the name 
-// route parameter. The second arg is an object specifying the changes we want to make to that document. 
-// This one uses a special syntax that's unique to MongoDB => $inc, that stands for increment, 
-// to increment the upvotes by one. 
-    const updatedArticle = await db.collection('articles').findOneAndUpdate({ name }, {
-        $inc: {upvotes: 1}
+    const { uid } = req.user;
+
+    const article = await db.collection('articles').findOne({ name });
+
+    const upvoteIds = article.upvoteIds || [];
+    const canUpvote = uid && !upvoteIds.includes(uid);
+
+    if (canUpvote) {
+        const updatedArticle = await db.collection('articles').findOneAndUpdate({ name }, {
+        $inc: {upvotes: 1},
+        $push: {upvoteIds: uid}
     }, {
-// we need to pass a settings object that will tell MongoDB when we want to return the document that we're finding, 
-// Options to return before or after update
         returnDocument: "after",
     });
 
     res.json(updatedArticle)
+    } else {
+        res.sendStatus(403, 'Request denied, that article does not exist');
+    }
 });
 
 //Endpoint will allow users to add comments to an article.
@@ -99,12 +113,14 @@ app.post('/api/articles/:name/comments', async(req, res) => {
     res.json(updatedArticle);
 });
 
+const PORT = process.env.PORT || 8000
+
 async function start() {
     await connectToDB();
 
-    app.listen(port, function() {
+    app.listen(PORT, function() {
     
-    console.log('Server is listening on port: 8000')
+    console.log('Server is listening on port: ' + PORT)
     })
 }
 

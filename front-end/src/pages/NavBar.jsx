@@ -27,8 +27,8 @@ const NavBar = () => {
                     )}
                     <li>
                     {user 
-                        ? <button onClick={() => signOut(getAuth())}>Signout</button>
-                        :<button onClick={() => navigate('/login')}>SignIn </button>
+                        ? <button onClick={() => signOut(getAuth())}>Sign Out</button>
+                        :<button onClick={() => navigate('/login')}>Sign In </button>
                     } 
                     </li>
                 </>)
